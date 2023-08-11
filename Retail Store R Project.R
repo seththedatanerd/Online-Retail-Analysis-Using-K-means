@@ -3,25 +3,16 @@ install.packages("readxl")
 install.packages("tidyverse")
 library(readxl)
 library(tidyverse)
+
+# Simple EDA
 data <- read_excel("Online Retail.xlsx", sheet = 1)
-
 head(data)
-
 summary(data)
-
-
-colSums(is.na(data))
-
+colSums(is.na(data)) 
 data <- na.omit(data)
-
-sum(is.na(data))
-
-str(data)
-
-unique(data$InvoiceNo[grepl("^c", data$InvoiceNo)])
-
-
-
+sum(is.na(data)) # Now no null values
+str(data) # brief look at the structure
+unique(data$InvoiceNo[grepl("^c", data$InvoiceNo)]) # Any cancellations?
 
 
 ## Stage 2 Exploratory Data Analysis
@@ -36,10 +27,6 @@ transactions_per_customer <- data %>%
 
 head(transactions_per_customer)
 
-
-
-
-
 # Popular products - most purchased items
 popular_products <- data %>%
   group_by(Description) %>%
@@ -47,15 +34,11 @@ popular_products <- data %>%
   arrange(desc(NumPurchases)) %>%
   top_n(10, NumPurchases)
 
-
-
 # Sales trends over time
 sales_trends <- data %>%
   group_by(InvoiceDate) %>%
   summarise(TotalSales = sum(Quantity * UnitPrice)) %>% filter(TotalSales > 0) %>%
   arrange(InvoiceDate)
-
-
 
 # Geographic distribution of customers
 geographic_distribution <- data %>%
@@ -63,9 +46,9 @@ geographic_distribution <- data %>%
   summarise(NumCustomers = n_distinct(CustomerID)) %>%
   arrange(desc(NumCustomers)) %>% top_n(10, Country)
 
-# Let's visualise all of the data we have created so far 
+# Let's visualise all of the segments we have created so far 
 
-# Visualise the geographic distribution of customers
+# geographic locations of customers
 ggplot(data = geographic_distribution, aes(x = reorder(Country, -NumCustomers), y = NumCustomers)) +
   geom_bar(stat = "identity", fill = "purple", color = "black") +
   labs(title = "Geographic Spread of Customers",
@@ -104,8 +87,7 @@ ggplot(data = popular_products, aes(x = NumPurchases, y = Description)) +
        y = "Number of Purchases")
 
 
-### Stage 3: we'll perform some k-means clustering to segment certain customers 
-# based on their spending and purchases
+### Stage 3: we'll perform some k-means clustering to segment certain customers based on their spending and purchases
 
 spending_by_customer <- data %>% group_by(CustomerID) %>% summarise(TotalSpend = sum(Quantity*UnitPrice))
 
@@ -113,8 +95,7 @@ cluster_data <- merge(spending_by_customer, transactions_per_customer, by = "Cus
 
 head(cluster_data)
 
-cluster_data[, c("TotalSpend", "Transactions")] = scale(cluster_data[, c("TotalSpend", "Transactions")])
-
+cluster_data[, c("TotalSpend", "Transactions")] = scale(cluster_data[, c("TotalSpend", "Transactions")]) # standardise our 2 columns
 
 selected_features <- cluster_data %>%
   select(TotalSpend, Transactions)
